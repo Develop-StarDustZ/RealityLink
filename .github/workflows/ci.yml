@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show available Xcode versions
+        run: ls -d /Applications/Xcode*.app 2>/dev/null || echo "no Xcode installed in /Applications"
+      - name: Select Xcode (latest available)
+        run: |
+          XCODE_PATH=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XCODE_PATH" ]; then
+            echo "::error::No Xcode.app found in /Applications"
+            exit 1
+          fi
+          echo "Selecting $XCODE_PATH"
+          sudo xcode-select -s "$XCODE_PATH"
+      - name: Show toolchain
+        run: swift --version
+      - name: Test
+        run: swift test --package-path macOS
+      - name: Release build
+        run: swift build -c release --package-path macOS
+      - name: Validate shell scripts
+        run: zsh -n Scripts/build-app.sh Scripts/release.sh

@@ -1,0 +1,50 @@
+{
+  "name": "realitylink-windows",
+  "version": "0.2.0",
+  "description": "Open-source multi-protocol secure tunnel client for Windows",
+  "author": "RealityLink Contributors <realitylink@users.noreply.github.com>",
+  "homepage": "https://github.com/Develop-StarDustZ/RealityLink",
+  "license": "GPL-3.0-or-later",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "prepare-core": "node Scripts/download-sing-box.js",
+    "dist": "npm run test && npm run prepare-core && electron-builder --win nsis portable && node Scripts/write-checksums.js"
+  },
+  "devDependencies": {
+    "electron": "43.1.1",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "dev.realitylink.windows",
+    "productName": "RealityLink",
+    "asar": true,
+    "files": ["src/**/*", "renderer/**/*", "resources/icon.png", "package.json"],
+    "extraResources": [
+      { "from": "resources/tun-wrapper.ps1", "to": "tun-wrapper.ps1" },
+      { "from": "vendor/sing-box.exe", "to": "sing-box.exe" },
+      { "from": "../Shared/electron/profile.js", "to": "profile.js" },
+      { "from": "../Shared/electron/config.js", "to": "config.js" },
+      { "from": "../Shared/electron/subscription.js", "to": "subscription.js" },
+      { "from": "../LICENSE", "to": "LICENSE" },
+      { "from": "../THIRD_PARTY_NOTICES.md", "to": "THIRD_PARTY_NOTICES.md" }
+    ],
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "resources/icon.ico",
+      "executableName": "RealityLink"
+    },
+    "nsis": {
+      "artifactName": "RealityLink-${version}-windows-${arch}-setup.${ext}",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "RealityLink-${version}-windows-${arch}-portable.${ext}"
+    }
+  }
+}

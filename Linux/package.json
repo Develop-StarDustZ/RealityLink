@@ -1,0 +1,53 @@
+{
+  "name": "realitylink-linux",
+  "version": "0.2.0",
+  "description": "Open-source multi-protocol secure tunnel client for Linux",
+  "author": "RealityLink Contributors <realitylink@users.noreply.github.com>",
+  "homepage": "https://github.com/Develop-StarDustZ/RealityLink",
+  "license": "GPL-3.0-or-later",
+  "main": "src/main.js",
+  "desktopName": "dev.realitylink.linux",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "prepare-core": "bash Scripts/download-sing-box.sh",
+    "dist": "npm run test && npm run prepare-core && electron-builder --linux AppImage deb && bash Scripts/write-checksums.sh"
+  },
+  "devDependencies": {
+    "electron": "43.1.1",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "dev.realitylink.linux",
+    "productName": "RealityLink",
+    "asar": true,
+    "files": [
+      "src/**/*",
+      "renderer/**/*",
+      "resources/icon.png",
+      "package.json"
+    ],
+    "extraResources": [
+      { "from": "resources/tun-wrapper.sh", "to": "tun-wrapper.sh" },
+      { "from": "vendor/sing-box", "to": "sing-box" },
+      { "from": "../Shared/electron/profile.js", "to": "profile.js" },
+      { "from": "../Shared/electron/config.js", "to": "config.js" },
+      { "from": "../Shared/electron/subscription.js", "to": "subscription.js" },
+      { "from": "../LICENSE", "to": "LICENSE" },
+      { "from": "../THIRD_PARTY_NOTICES.md", "to": "THIRD_PARTY_NOTICES.md" }
+    ],
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Network",
+      "synopsis": "Multi-protocol secure tunnel client",
+      "maintainer": "RealityLink Contributors <realitylink@users.noreply.github.com>",
+      "syncDesktopName": true,
+      "icon": "resources/icon.png",
+      "artifactName": "RealityLink-${version}-linux-${arch}.${ext}",
+      "executableName": "realitylink"
+    },
+    "deb": {
+      "depends": ["policykit-1 | polkitd", "libgtk-3-0", "libnss3"]
+    }
+  }
+}

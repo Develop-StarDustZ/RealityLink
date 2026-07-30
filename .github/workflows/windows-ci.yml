@@ -1,0 +1,35 @@
+name: Windows CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-package:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: Windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Windows/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run prepare-core
+      - run: npx electron-builder --win nsis portable --x64 --publish never
+      - run: node Scripts/write-checksums.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RealityLink-windows-x64
+          path: |
+            Windows/dist/*.exe
+            Windows/dist/*.sha256

@@ -1,0 +1,55 @@
+name: 缺陷报告
+description: 报告可复现的 RealityLink 问题
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: 请先移除真实节点地址、UUID、分享链接和敏感日志。
+  - type: input
+    id: version
+    attributes:
+      label: RealityLink 版本
+      placeholder: 例如 0.2.0
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: 系统、版本与设备架构
+      placeholder: 例如 Windows 11 x64、Ubuntu 24.04 arm64、macOS 15 Apple Silicon
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: 连接模式
+      options: [系统代理, 全局 TUN, 与连接无关]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 已脱敏日志
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已删除节点地址、UUID、公钥以外的凭据和其他敏感数据
+          required: true
+        - label: 我已搜索现有 Issue，未找到相同问题
+          required: true

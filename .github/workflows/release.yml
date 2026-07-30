@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show available Xcode versions
+        run: ls -d /Applications/Xcode*.app 2>/dev/null || echo "no Xcode installed in /Applications"
+      - name: Select Xcode (latest available)
+        run: |
+          XCODE_PATH=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XCODE_PATH" ]; then
+            echo "::error::No Xcode.app found in /Applications"
+            exit 1
+          fi
+          echo "Selecting $XCODE_PATH"
+          sudo xcode-select -s "$XCODE_PATH"
+      - name: Test
+        run: swift test --package-path macOS
+      - name: Build verified arm64, x64, and Universal archives
+        run: Scripts/release.sh
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/macos/*/*.zip dist/macos/*/*.sha256 --generate-notes --verify-tag
+  linux:
+    needs: macos
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: Linux
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Linux/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Verify tag version
+        shell: bash
+        run: |
+          set -e
+          pkg_version=$(node -p "require('./package.json').version")
+          echo "Tag: $GITHUB_REF_NAME"
+          echo "Package version: $pkg_version"
+          if [ "$GITHUB_REF_NAME" != "v$pkg_version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version v$pkg_version"
+            exit 1
+          fi
+      - name: Build Linux x64
+        run: |
+          TARGET_ARCH=amd64 npm run prepare-core
+          npx electron-builder --linux AppImage deb --x64 --publish never
+      - name: Build Linux ARM64
+        run: |
+          TARGET_ARCH=arm64 npm run prepare-core
+          npx electron-builder --linux AppImage deb --arm64 --publish never
+      - run: bash Scripts/write-checksums.sh
+      - name: Upload Linux assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/*.AppImage dist/*.deb dist/*.sha256 --clobber
+  windows:
+    needs: macos
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: Windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Windows/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Verify tag version
+        shell: bash
+        run: |
+          set -e
+          pkg_version=$(node -p "require('./package.json').version")
+          echo "Tag: $GITHUB_REF_NAME"
+          echo "Package version: $pkg_version"
+          if [ "$GITHUB_REF_NAME" != "v$pkg_version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version v$pkg_version"
+            exit 1
+          fi
+      - name: Build Windows x64
+        run: |
+          $env:TARGET_ARCH = "x64"
+          npm run prepare-core
+          npx electron-builder --win nsis portable --x64 --publish never
+      - name: Build Windows ARM64
+        run: |
+          $env:TARGET_ARCH = "arm64"
+          npm run prepare-core
+          npx electron-builder --win nsis portable --arm64 --publish never
+      - run: node Scripts/write-checksums.js
+      - name: Upload Windows assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $assets = Get-ChildItem dist/*.exe, dist/*.sha256 | ForEach-Object FullName
+          gh release upload "$env:GITHUB_REF_NAME" $assets --clobber
